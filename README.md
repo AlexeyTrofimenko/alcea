@@ -86,7 +86,7 @@ pip install -r nlp_requirements.txt
 source env.sh llm
 pip install -r llm_requirements.txt
 ```
-
+> Note: To work with models with a large number of parameters, it is necessary to set the secret key for inference = InferenceClient
 #### 🌐 Flask
 
 ```bash
