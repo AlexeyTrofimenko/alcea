@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Novel NLP Processor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    let state_id = null;
+    let showingStats = false;
+
+    function startProcessing() {
+        const title = document.getElementById('novel-title').value.trim();
+        const text = document.getElementById('novel-text').value.trim();
+        if (!title || !text) return;
+        // Block UI
+        document.getElementById('process-form').classList.add('pointer-events-none', 'opacity-60');
+        fetch('/process', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title, text})
+        }).then(resp => resp.json()).then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            state_id = data.id;
+            document.getElementById('process-form').style.display = 'none';
+            showLoadingPanel(title, text);
+            pollProgress();
+        });
+    }
+
+    function showLoadingPanel(title, text) {
+        document.getElementById('main-panel').innerHTML = `
+        <div class="flex flex-row gap-8">
+            <div class="w-1/2">
+                <label class="block text-white mb-2 font-bold">Title</label>
+                <input value="${title}" class="w-full p-2 rounded-lg bg-blue-700 text-white mb-4" disabled>
+                <label class="block text-white mb-2 font-bold">Text</label>
+                <textarea rows="14" class="w-full p-2 rounded-lg bg-blue-700 text-white" disabled>${text}</textarea>
+            </div>
+            <div class="w-1/2" id="analysis-panel">
+                <h2 class="text-xl text-white font-bold mb-4">NLP Analysis</h2>
+                <div id="step-list"></div>
+                <div class="mt-8 flex justify-center">
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </div>
+        `;
+        addLoaderStyle();
+    }
+
+    function pollProgress() {
+        fetch(`/progress/${state_id}`).then(resp => resp.json()).then(data => {
+            if (data.error) {
+                document.getElementById('analysis-panel').innerHTML =
+                  `<div class="text-red-400">${data.error}</div>`;
+                return;
+            }
+            // Шаги
+            let stepHtml = `<ol class="list-decimal ml-5 text-white space-y-1">`;
+            for (const s of data.steps) {
+                stepHtml += `<li class="${s.done ? 'text-green-400' : 'text-blue-200'}">${s.name}${s.done ? ' ✔' : ''}</li>`;
+            }
+            stepHtml += `</ol>`;
+            document.getElementById('step-list').innerHTML = stepHtml;
+
+            if (!data.done) {
+                setTimeout(pollProgress, 700);
+            } else {
+                showResults(data.output_html, data.stats);
+            }
+        });
+    }
+
+    function showResults(html, stats) {
+        showingStats = false;
+        document.getElementById('analysis-panel').innerHTML = `
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-xl text-white font-bold">NLP Analysis Result</h2>
+                <button onclick="toggleStats()" title="Toggle statistics" class="p-2 rounded-full bg-blue-700 hover:bg-blue-600">
+                    <svg id="stat-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3v18m4-14v14m-8-8v8"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="result-panel" class="bg-blue-950 p-4 rounded-xl overflow-auto max-h-[550px] text-white prose prose-invert">${html}</div>
+            <div class="flex justify-end mt-4">
+  <button id="create-glossary-btn" onclick="createGlossary()" class="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 font-semibold transition">Create Glossary</button>
+</div>
+<div id="glossary-panel"></div>
+        `;
+        window._html = html;
+        window._stats = stats.replace(/\n/g, "<br>");
+    }
+
+    function toggleStats() {
+        showingStats = !showingStats;
+        if (showingStats) {
+            document.getElementById('result-panel').innerHTML =
+                `<b>Statistics:</b><br><span class="font-mono">${window._stats}</span>`;
+        } else {
+            document.getElementById('result-panel').innerHTML = window._html;
+        }
+    }
+
+    function addLoaderStyle() {
+        if (document.getElementById('loader-style')) return;
+        const style = document.createElement('style');
+        style.id = 'loader-style';
+        style.innerHTML = `
+        .loader {
+          border: 5px solid #3b82f6;
+          border-top: 5px solid #60a5fa;
+          border-radius: 50%;
+          width: 48px;
+          height: 48px;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `;
+        document.head.appendChild(style);
+    }
+    </script>
+</head>
+<body class="bg-blue-900 min-h-screen flex flex-col items-center py-10">
+    <div class="w-full max-w-5xl bg-blue-800 p-8 rounded-2xl shadow-xl">
+        <h1 class="text-3xl text-white font-bold mb-6 text-center">Novel NLP Processor</h1>
+        <div id="main-panel">
+            <form id="process-form" class="space-y-4" onsubmit="event.preventDefault(); startProcessing();">
+                <input id="novel-title" name="title" placeholder="Novel Title" class="w-full p-2 rounded-lg bg-blue-700 text-white" required>
+                <textarea id="novel-text" name="text" rows="10" placeholder="Paste your novel text here..." class="w-full p-2 rounded-lg bg-blue-700 text-white" required></textarea>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg py-2 font-semibold transition">Process</button>
+            </form>
+        </div>
+    </div>
+      
+      <script>
+      let glossaryData = null;
+      
+      function createGlossary() {
+          document.getElementById('create-glossary-btn').disabled = true;
+          fetch('/create_glossary', {
+              method: "POST",
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({id: state_id})
+          }).then(resp => resp.json()).then(data => {
+              if (data.error) {
+                  alert(data.error);
+                  return;
+              }
+              glossaryData = data.glossary;
+              showGlossary();
+          });
+      }
+      
+      function showGlossary() {
+          let html = `
+          <div class="bg-blue-950 p-4 rounded-xl mt-4">
+              <div class="flex justify-between items-center mb-3">
+                  <span class="text-xl font-bold text-white">Entity Glossary</span>
+                  <button onclick="downloadGlossary()" class="bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded text-white">Save Glossary</button>
+              </div>
+              <table class="w-full text-white text-sm table-fixed">
+                  <thead><tr>
+                      <th class="w-1/4">Entity</th>
+                      <th class="w-1/4">Type</th>
+                      <th class="w-1/2">All Mentions</th>
+                      <th class="w-10"></th>
+                  </tr></thead>
+                  <tbody>
+          `;
+          for (let entry of glossaryData) {
+              html += `<tr>
+                  <td class="break-words">${entry.entity}</td>
+                  <td>${entry.type}</td>
+                  <td class="break-words">${entry.extra.all_mentions.join(", ")}</td>
+                  <td><button class="text-red-400 hover:text-red-200" onclick="deleteEntity('${entry.entity.replace(/'/g, "\\'")}')">✕</button></td>
+              </tr>`;
+          }
+          html += `</tbody></table></div>`;
+          document.getElementById('glossary-panel').innerHTML = html;
+      }
+      
+      function deleteEntity(entity) {
+          fetch('/delete_entity', {
+              method: "POST",
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({id: state_id, entity})
+          }).then(resp => resp.json()).then(data => {
+              if (data.error) {
+                  alert(data.error);
+                  return;
+              }
+              glossaryData = data.glossary;
+              showGlossary();
+          });
+      }
+      
+      function downloadGlossary() {
+          window.location = `/download_glossary/${state_id}`;
+      }
+      </script>
+      
+</body>
+</html>

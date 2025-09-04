@@ -1,0 +1,18 @@
+COREF	start_token	end_token	prop	cat	text
+3	0	2	NOM	PER	The Shadow Blade
+3	6	6	PRON	PER	his
+2	12	12	PRON	PER	you
+2	17	17	PRON	PER	your
+2	22	22	PRON	PER	me
+5	24	24	NOM	PER	princess
+6	30	30	NOM	PER	thief
+2	33	34	PROP	PER	Princess Althea
+2	38	38	PRON	PER	her
+2	47	47	PRON	PER	her
+1	54	55	PROP	LOC	Silvermoon wo
+4	62	63	NOM	PER	The assassin
+4	70	70	PRON	PER	He
+2	73	73	PRON	PER	her
+2	80	80	PRON	PER	she
+2	89	89	PRON	PER	she
+0	94	94	PRON	PER	I

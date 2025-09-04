@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Translation Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    let tid = null;
+    let glossary = null;
+    let entities = [];
+
+    function startTranslation() {
+        glossary = entities.length ? entities : glossary;
+        const text = document.getElementById('text').value;
+        const lang = document.getElementById('target_lang').value;
+        const model = document.getElementById('model').value;
+        const progressive = document.getElementById('progressive').checked;
+        fetch("/start_translation", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({text, target_lang: lang, model, progressive, glossary})
+        }).then(r=>r.json()).then(data=>{
+            if (data.tid) {
+                tid = data.tid;
+                pollTranslation();
+            } else {
+                alert("Error: "+JSON.stringify(data));
+            }
+        });
+    }
+
+    function pollTranslation() {
+        fetch("/translation_progress/"+tid).then(r=>r.json()).then(data=>{
+            document.getElementById('progress').innerText = "Status: "+data.progress;
+            if (data.done) {
+                document.getElementById('translation-result').value = data.output;
+                // Если progressive, показать еще и чанки
+                if (data.chunks_info) {
+                    document.getElementById('chunks-info').innerText = JSON.stringify(data.chunks_info, null, 2);
+                }
+            } else {
+                setTimeout(pollTranslation, 1000);
+            }
+        });
+    }
+
+    function onGlossaryUpload(evt) {
+        let file = evt.target.files[0];
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            glossary = JSON.parse(e.target.result);
+            document.getElementById('glossary-info').innerText = JSON.stringify(glossary, null, 2);
+        };
+        reader.readAsText(file);
+    }
+
+    function analyzeGlossary() {
+        const text = document.getElementById('text').value;
+        const model = document.getElementById('model').value;
+        if (!glossary) { alert("Upload glossary first."); return; }
+        fetch("/analyze_glossary", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({text, glossary, model})
+        }).then(r=>r.json()).then(data=>{
+            if (data.entities) {
+                entities = data.entities;
+                showEntityEditor();
+            } else {
+                alert("Analysis failed.");
+            }
+        });
+    }
+
+    function showEntityEditor() {
+        let html = "<h3 class='text-white'>Entities for translation</h3>";
+        html += "<table class='w-full text-black text-sm'><tr><th>Name</th><th>Type</th><th>Translation</th><th>Gender</th><th></th></tr>";
+        for (let i=0;i<entities.length;i++) {
+            let e = entities[i];
+            html += `<tr>
+            <td><input value="${e.name||''}" onchange="entities[${i}].name=this.value"></td>
+            <td><input value="${e.type||''}" onchange="entities[${i}].type=this.value"></td>
+            <td><input value="${e.translation||''}" onchange="entities[${i}].translation=this.value"></td>
+            <td><input value="${e.gender||''}" onchange="entities[${i}].gender=this.value"></td>
+            <td><button onclick="entities.splice(${i},1);showEntityEditor();" class="text-red-400">✕</button></td>
+            </tr>`;
+        }
+        html += "</table><button onclick='entities.push({name:\"\",type:\"\",translation:\"\",gender:\"\"});showEntityEditor();' class='bg-blue-700 mt-2 px-2 py-1 rounded'>Add</button>";
+        document.getElementById('entity-editor').innerHTML = html;
+    }
+    </script>
+</head>
+<body class="bg-blue-900 min-h-screen flex flex-col items-center py-10">
+    <div class="w-full max-w-4xl bg-blue-800 p-8 rounded-2xl shadow-xl">
+        <h1 class="text-3xl text-white font-bold mb-6 text-center">Novel Translation</h1>
+        <div class="mb-4">
+            <label class="text-white font-bold">Source Text:</label>
+            <textarea id="text" rows="8" class="w-full bg-blue-700 rounded p-2 text-white"></textarea>
+        </div>
+        <div class="flex gap-4 mb-4">
+            <input id="target_lang" placeholder="Target Language (e.g. Ukrainian)" class="p-2 rounded bg-blue-700 text-white" />
+            <input id="model" placeholder="Model (e.g. meta-llama/Llama-3.3-70B-Instruct)" class="p-2 rounded bg-blue-700 text-white" />
+            <label class="text-white flex items-center gap-1">
+                <input id="progressive" type="checkbox" class="form-checkbox"/> Progressive Context
+            </label>
+        </div>
+        <div class="mb-4">
+            <label class="text-white font-bold">Glossary (optional):</label>
+            <input type="file" accept=".json" onchange="onGlossaryUpload(event)" class="text-white"/>
+            <button onclick="analyzeGlossary()" class="bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded text-white ml-2">Analyze</button>
+            <pre id="glossary-info" class="bg-blue-950 p-2 rounded mt-2 text-xs text-white"></pre>
+        </div>
+        <div id="entity-editor" class="mb-4"></div>
+        <div class="mb-4 flex items-center gap-2">
+            <button onclick="startTranslation()" class="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-6 py-2 font-semibold transition">Translate</button>
+            <span id="progress" class="text-white"></span>
+        </div>
+        <div class="mb-2">
+            <label class="text-white font-bold">Result:</label>
+            <textarea id="translation-result" rows="8" class="w-full bg-blue-700 rounded p-2 text-white" readonly></textarea>
+        </div>
+        <div class="mb-2">
+            <label class="text-white font-bold">Chunks/Context Info:</label>
+            <pre id="chunks-info" class="bg-blue-950 p-2 rounded text-xs text-white overflow-x-auto whitespace-pre text-wrap"></pre>
+        </div>
+    </div>
+</body>
+</html>

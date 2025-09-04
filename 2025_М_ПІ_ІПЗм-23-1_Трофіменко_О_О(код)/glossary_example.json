@@ -1,0 +1,110 @@
+[
+  {
+    "entity": "The Shadow Blade",
+    "type": "PER",
+    "translation": "",
+    "extra": {
+      "coref": 3,
+      "mention_types": [
+        "NOM",
+        "PRON"
+      ],
+      "all_mentions": [
+        "his",
+        "The Shadow Blade"
+      ]
+    }
+  },
+  {
+    "entity": "Princess Althea",
+    "type": "PER",
+    "translation": "",
+    "extra": {
+      "coref": 2,
+      "mention_types": [
+        "PROP",
+        "PRON"
+      ],
+      "all_mentions": [
+        "Princess Althea",
+        "you",
+        "her",
+        "she",
+        "me",
+        "your"
+      ]
+    }
+  },
+  {
+    "entity": "princess",
+    "type": "PER",
+    "translation": "",
+    "extra": {
+      "coref": 5,
+      "mention_types": [
+        "NOM"
+      ],
+      "all_mentions": [
+        "princess"
+      ]
+    }
+  },
+  {
+    "entity": "thief",
+    "type": "PER",
+    "translation": "",
+    "extra": {
+      "coref": 6,
+      "mention_types": [
+        "NOM"
+      ],
+      "all_mentions": [
+        "thief"
+      ]
+    }
+  },
+  {
+    "entity": "Silvermoon wo",
+    "type": "LOC",
+    "translation": "",
+    "extra": {
+      "coref": 1,
+      "mention_types": [
+        "PROP"
+      ],
+      "all_mentions": [
+        "Silvermoon wo"
+      ]
+    }
+  },
+  {
+    "entity": "The assassin",
+    "type": "PER",
+    "translation": "",
+    "extra": {
+      "coref": 4,
+      "mention_types": [
+        "NOM",
+        "PRON"
+      ],
+      "all_mentions": [
+        "The assassin",
+        "He"
+      ]
+    }
+  },
+  {
+    "entity": "I",
+    "type": "PER",
+    "translation": "",
+    "extra": {
+      "coref": 0,
+      "mention_types": [
+        "PRON"
+      ],
+      "all_mentions": [
+        "I"
+      ]
+    }
+  }
+]

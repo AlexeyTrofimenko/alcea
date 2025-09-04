@@ -1,0 +1,10 @@
+matplotlib
+numpy
+pandas
+sacrebleu
+seaborn
+nltk
+rouge_score
+sentence-transformers
+scikit-learn
+networkx
